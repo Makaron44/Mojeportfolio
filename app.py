@@ -47,7 +47,7 @@ if not os.path.exists(folder_zdjec):
     os.makedirs(folder_zdjec)
 
 # Pobieramy pliki i sortujemy alfabetycznie (lub można po dacie)
-pliki = sorted([f for f in os.listdir(folder_zdjec) if f.endswith(('.jpg', '.jpeg', '.png', '.webp'))])
+pliki = sorted([f for f in os.listdir(folder_zdjec) if f.endswith(('.jpg', '.jpeg', '.png', '.webp', '.JPG', '.JPEG', '.PNG'))])
 
 # --- PANEL BOCZNY (USTAWIENIA) ---
 with st.sidebar:
@@ -120,3 +120,4 @@ else:
                 st.session_state.strona_galerii += 1
 
                 st.rerun() # Przeładowanie strony
+
