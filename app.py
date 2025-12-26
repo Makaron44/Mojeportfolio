@@ -118,4 +118,5 @@ else:
         if st.session_state.strona_galerii < liczba_stron - 1:
             if st.button("Następna ➡️"):
                 st.session_state.strona_galerii += 1
+
                 st.rerun() # Przeładowanie strony
