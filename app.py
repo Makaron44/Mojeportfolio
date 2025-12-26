@@ -62,7 +62,7 @@ with st.sidebar:
     ile_na_strone = st.select_slider("Zdjęć na stronę", options=[3, 6, 9, 12, 15, 20, 50], value=9)
     st.divider()
     st.write(f"📂 Razem prac: **{len(pliki)}**")
-    st.info("Autor: Twój Nick/Imię\nTechnologia: Gemini & Python")
+    st.info("Autor: Maciej Ratajczak \nTechnologia: Gemini & Python")
 
 # --- GŁÓWNA TREŚĆ (NAGŁÓWEK) ---
 
@@ -128,3 +128,4 @@ else:
             if st.button("Następna ➡️"):
                 st.session_state.strona_galerii += 1
                 st.rerun()
+
