@@ -26,10 +26,11 @@ st.markdown("""
         img:hover {
             transform: scale(1.02);
         }
-        /* Styl przycisków nawigacji */
+        /* Styl przycisków (wszystkich, w tym Powiększ) */
         .stButton button {
             width: 100%;
             border-radius: 10px;
+            border: 1px solid #444;
         }
         /* Wyśrodkowanie tekstu numeracji stron */
         .page-number {
@@ -43,10 +44,9 @@ st.markdown("""
 # --- FUNKCJA: DOPASOWANIE Z TŁEM (Z CACHE) ---
 @st.cache_data
 def dopasuj_z_tlem(image_path, kolor_tla=(14, 17, 23)):
-    """Wczytuje zdjęcie, konwertuje do RGB i dodaje tło, aby było kwadratowe."""
+    """Wczytuje zdjęcie, konwertuje do RGB i dodaje tło, aby było kwadratowe (do miniaturki)."""
     image = Image.open(image_path)
     
-    # Konwersja do RGB (ważne przy przezroczystych PNG lub WebP)
     if image.mode in ("RGBA", "P"):
         image = image.convert("RGB")
     
@@ -58,6 +58,26 @@ def dopasuj_z_tlem(image_path, kolor_tla=(14, 17, 23)):
     nowe_zdjecie.paste(image, (pozycja_x, pozycja_y))
     return nowe_zdjecie
 
+# --- NOWOŚĆ: OKNO DIALOGOWE (LIGHTBOX) ---
+@st.dialog("Podgląd pracy")
+def pokaz_duze_zdjecie(sciezka_do_pliku, nazwa_pliku):
+    """Wyświetla duże zdjęcie w oknie modalnym z opcją pobrania."""
+    try:
+        # Wczytujemy oryginał bez tła
+        img = Image.open(sciezka_do_pliku)
+        st.image(img, use_container_width=True)
+        
+        # Dodajemy przycisk pobierania pod dużym zdjęciem
+        with open(sciezka_do_pliku, "rb") as file:
+            st.download_button(
+                label="📥 Pobierz grafikę",
+                data=file,
+                file_name=nazwa_pliku,
+                mime="image/webp"
+            )
+    except Exception as e:
+        st.error(f"Nie udało się wczytać oryginału: {e}")
+
 # --- INICJALIZACJA SESJI ---
 if 'strona_galerii' not in st.session_state:
     st.session_state.strona_galerii = 0
@@ -65,14 +85,10 @@ if 'strona_galerii' not in st.session_state:
 # --- POBIERANIE PLIKÓW ---
 folder_zdjec = "images"
 
-# Jeśli folder nie istnieje, tworzymy go (żeby nie było błędu na starcie)
 if not os.path.exists(folder_zdjec):
     os.makedirs(folder_zdjec)
 
-# Lista akceptowanych rozszerzeń
 rozszerzenia = ('.webp', '.png', '.jpg', '.jpeg', '.JPG', '.PNG', '.WEBP')
-
-# Pobieranie plików (zabezpieczenie przed błędami wielkości liter)
 pliki = sorted([f for f in os.listdir(folder_zdjec) if f.lower().endswith(rozszerzenia)])
 
 # --- PANEL BOCZNY (USTAWIENIA) ---
@@ -91,6 +107,7 @@ with st.container():
     st.markdown("""
     ### Witaj w mojej cyfrowej galerii! 👋
     Poniżej prezentuję zbiór moich najlepszych grafik wygenerowanych przy użyciu sztucznej inteligencji.
+    Kliknij **Powiększ**, aby zobaczyć detale.
     """)
 
 st.divider()
@@ -101,7 +118,6 @@ if not pliki:
 else:
     liczba_stron = math.ceil(len(pliki) / ile_na_strone)
     
-    # Zabezpieczenie: Reset strony, jeśli zmienimy liczbę zdjęć na stronę
     if st.session_state.strona_galerii >= liczba_stron:
         st.session_state.strona_galerii = 0
 
@@ -111,12 +127,10 @@ else:
 
     # --- FUNKCJA NAWIGACJI ---
     def pokaz_nawigacje(miejsce):
-        """Wyświetla przyciski nawigacji. Argument 'miejsce' to unikalny klucz (np. 'gora', 'dol')."""
         col_prev, col_info, col_next = st.columns([1, 2, 1])
         
         with col_prev:
             if st.session_state.strona_galerii > 0:
-                # Klucz (key) musi być unikalny dla każdego przycisku w Streamlit!
                 if st.button("⬅️ Poprzednia", key=f"prev_{miejsce}"):
                     st.session_state.strona_galerii -= 1
                     st.rerun()
@@ -130,27 +144,33 @@ else:
                     st.session_state.strona_galerii += 1
                     st.rerun()
 
-    # 1. NAWIGACJA GÓRNA (Nad zdjęciami)
+    # 1. NAWIGACJA GÓRNA
     pokaz_nawigacje("gora")
     
-    st.write("") # Mały odstęp
+    st.write("")
 
-    # --- WYŚWIETLANIE ZDJĘĆ ---
+    # --- WYŚWIETLANIE ZDJĘĆ Z PRZYCISKIEM ---
     cols = st.columns(ile_kolumn)
     
     for index, plik in enumerate(pliki_na_teraz):
         sciezka = os.path.join(folder_zdjec, plik)
         try:
-            # Używamy funkcji z cache dla wydajności
+            # Tworzymy kwadratową miniaturkę do siatki
             img_square = dopasuj_z_tlem(sciezka)
             
             with cols[index % ile_kolumn]:
+                # Wyświetlamy miniaturkę
                 st.image(img_square, use_container_width=True)
+                
+                # PRZYCISK: Otwiera okno dialogowe
+                # Unikalny klucz zapobiega błędom Streamlit
+                if st.button("🔍 Powiększ", key=f"zoom_{index}_{plik}"):
+                    pokaz_duze_zdjecie(sciezka, plik)
                 
         except Exception as e:
             st.error(f"Nie udało się wczytać: {plik}")
 
     st.divider()
 
-    # 2. NAWIGACJA DOLNA (Pod zdjęciami)
+    # 2. NAWIGACJA DOLNA
     pokaz_nawigacje("dol")
